@@ -1,0 +1,6 @@
+rootProject.name = 'netty-learn'
+rootProject.children.each { project ->
+    project.buildFileName = "${project.name}.gradle"
+}
+include 'netty-learn-simple'
+

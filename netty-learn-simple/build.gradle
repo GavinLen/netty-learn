@@ -1,0 +1,5 @@
+group 'xyz.ieden.learn.netty.simple'
+
+dependencies {
+    compile group: 'io.netty', name: 'netty-all', version: '4.1.53.Final'
+}

@@ -1,0 +1,40 @@
+allprojects {
+    group 'xyz.ieden.learn.netty'
+    version '1.0-SNAPSHOT'
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+
+    ext {
+        javaVersion = 1.8
+        junitVersion = 4.13
+    }
+
+    sourceCompatibility = "$javaVersion"
+    targetCompatibility = "$javaVersion"
+    repositories {
+        mavenLocal()
+        maven {
+            name = 'ali'
+            url = uri('http://maven.aliyun.com/nexus/content/groups/public/')
+        }
+    }
+
+    dependencies {
+        testImplementation 'junit:junit:4.13'
+    }
+
+
+    publishing {
+        publications {
+            maven(MavenPublication) {
+                from(components.java)
+            }
+        }
+    }
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
+}
