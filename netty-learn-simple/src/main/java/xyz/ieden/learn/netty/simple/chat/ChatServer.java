@@ -1,6 +1,5 @@
 package xyz.ieden.learn.netty.simple.chat;
 
-import com.sun.org.apache.bcel.internal.generic.NEW;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
@@ -14,6 +13,7 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import io.netty.util.internal.StringUtil;
 
 /**
  * ChatServer
@@ -29,17 +29,20 @@ public class ChatServer {
 
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
-            serverBootstrap.channel(NioServerSocketChannel.class).childHandler(new ChannelInitializer<SocketChannel>() {
-                @Override
-                protected void initChannel(SocketChannel ch) throws Exception {
-                    ch.pipeline().addLast(new DelimiterBasedFrameDecoder(4096, Delimiters.lineDelimiter()))
-                            .addLast(new StringEncoder(CharsetUtil.UTF_8))
-                            .addLast(new StringDecoder(CharsetUtil.UTF_8))
-                            .addLast(new ChatServerHandle());
-                }
-            });
+            serverBootstrap
+                    .group(bootEventLoopGroup, workEventLoopGroup)
+                    .channel(NioServerSocketChannel.class)
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(SocketChannel ch) throws Exception {
+                            ch.pipeline().addLast(new DelimiterBasedFrameDecoder(4096, Delimiters.lineDelimiter()))
+                                    .addLast(new StringEncoder(CharsetUtil.UTF_8))
+                                    .addLast(new StringDecoder(CharsetUtil.UTF_8))
+                                    .addLast(new ChatServerHandle());
+                        }
+                    });
 
-            ChannelFuture channelFuture = serverBootstrap.bind(8080).sync();
+            ChannelFuture channelFuture = serverBootstrap.bind(8090).sync();
             channelFuture.channel().closeFuture().sync();
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -56,8 +59,17 @@ class ChatServerHandle extends SimpleChannelInboundHandler<String> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-        Channel channel = ctx.channel();
-        
+        Channel currentChannel = ctx.channel();
+        channelGroup.forEach(channel -> {
+            String msgStr = StringUtil.EMPTY_STRING;
+            if (channel != currentChannel) {
+                msgStr = channel.remoteAddress() + "发送消息:" + msg;
+            } else {
+                msgStr = "自己发送消息:" + msg;
+            }
+            channel.writeAndFlush(msgStr + "\n");
+        });
+
     }
 
     /**
@@ -74,8 +86,6 @@ class ChatServerHandle extends SimpleChannelInboundHandler<String> {
         channelGroup.writeAndFlush(this.sendMsg("服务器通知", channel.remoteAddress().toString(), "加入"));
         // 将当前 Channel 加入组
         channelGroup.add(channel);
-
-        super.handlerAdded(ctx);
     }
 
     /**
@@ -91,7 +101,6 @@ class ChatServerHandle extends SimpleChannelInboundHandler<String> {
         channelGroup.writeAndFlush(this.sendMsg("服务器通知", channel.remoteAddress().toString(), "离开"));
         // 将当前 Channel 移除组
         channelGroup.remove(channel);
-        super.handlerRemoved(ctx);
     }
 
     @Override
@@ -123,7 +132,7 @@ class ChatServerHandle extends SimpleChannelInboundHandler<String> {
      * @return
      */
     private String sendMsg(String msgType, String msg, String msgAction) {
-        String msgStr = "[" + msgType + "] -- " + msg + ", Action:" + msgAction;
+        String msgStr = "[" + msgType + "] -- " + msg + ", Action:" + msgAction + "\n";
         printMsg(msgStr);
         return msgStr;
     }

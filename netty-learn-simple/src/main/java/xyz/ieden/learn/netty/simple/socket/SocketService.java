@@ -31,6 +31,7 @@ public class SocketService {
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
             serverBootstrap
+                    .group(bossGroup, workGroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override

@@ -52,16 +52,6 @@ public class SimpleServer {
     }
 }
 
-class SimpleServerInit extends ChannelInitializer<SocketChannel> {
-
-    @Override
-    protected void initChannel(SocketChannel ch) throws Exception {
-
-        ChannelPipeline pipeline = ch.pipeline();
-
-    }
-}
-
 /**
  * 处理
  */
